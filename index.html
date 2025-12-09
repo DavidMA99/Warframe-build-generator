@@ -375,18 +375,18 @@
 
             <div class="build-display">
                 <div class="mod-slots-grid">
-                    <div class="mod-slot">MODS HERE</div>
-                    <div class="mod-slot">MODS HERE</div>
-                    <div class="mod-slot">MODS HERE</div>
-                    <div class="mod-slot">MODS HERE</div>
-                    <div class="mod-slot">MODS HERE</div>
-                    <div class="mod-slot">MODS HERE</div>
-                    <div class="mod-slot">MODS HERE</div>
-                    <div class="mod-slot">MODS HERE</div>
+                    <div class="mod-slot">SLOT 1 / NO MOD</div>
+                    <div class="mod-slot">SLOT 2 / NO MOD</div>
+                    <div class="mod-slot">SLOT 3 / NO MOD</div>
+                    <div class="mod-slot">SLOT 4 / NO MOD</div>
+                    <div class="mod-slot">SLOT 5 / NO MOD</div>
+                    <div class="mod-slot">SLOT 6 / NO MOD</div>
+                    <div class="mod-slot">SLOT 7 / NO MOD</div>
+                    <div class="mod-slot">SLOT 8 / NO MOD</div>
                 </div>
             </div>
 
-            <p class="warning-text">**Nota:** Los mods mostrados son solo de ejemplo. La lógica de optimización real debe ser implementada en la función `generateBuild()`.</p>
+            <p class="warning-text">**Nota:** Los mods mostrados son seleccionados por el Sistema Experto basado en la **prioridad heurística** de mods que tienes disponibles (ej. Primed > Galvanized > Base).</p>
 
             <div class="result-actions">
                 <button class="action-btn share-btn" onclick="alert('Funcionalidad de Captura de Pantalla/Compartir (Share)')">SHARE</button>
@@ -615,35 +615,95 @@
 
         // --- 4. LÓGICA DEL SISTEMA EXPERTO (PÁGINA 3) ---
 
-        /** Placeholder para la función de generación de build del sistema experto */
+        /** IMPLEMENTACIÓN DEL SISTEMA EXPERTO (HEURÍSTICA DE PRIORIDAD DE MODS) */
         function generateBuild() {
             const selectedModsArray = Array.from(userMods);
-            
+            const maxSlots = 8; // La mayoría de builds tienen 8 slots.
+
             if (selectedModsArray.length === 0) {
                 alert('Debes seleccionar al menos un Mod disponible para generar una build.');
                 return;
             }
-            
-            // --- LÓGICA DEL SISTEMA INTELIGENTE (ALGORITMO DE OPTIMIZACIÓN) ---
-            /* * ESTE ES UN MARCADOR DE POSICIÓN. 
-            * Aquí debe ir el algoritmo real que:
-            * 1. Toma las estadísticas base del Warframe/Arma (NO incluidas en las bases de texto).
-            * 2. Toma las estadísticas de los Mods (NO incluidas en las bases de texto).
-            * 3. Evalúa todas las combinaciones posibles de hasta 8 mods de 'selectedModsArray'
-            * para maximizar una métrica (ej: DPS, Duración de Habilidad, etc.).
-            * * Actualmente, el código de demostración solo toma los primeros 8 mods seleccionados.
-            */
 
-            let optimalBuild = [];
+            // Paso 1: Definición de Prioridades de Mods (Heurística)
+            // Se definen patrones de nombre que indican la rareza/poder del Mod en Warframe.
+            const priorityKeywords = [
+                // Mods más poderosos o únicos
+                { keyword: 'Umbral', priority: 10 }, 
+                { keyword: 'Galvanized', priority: 9 },
+                { keyword: 'Archon', priority: 9 },
+                { keyword: 'Primed', priority: 8 }, 
+                { keyword: 'Amalgam', priority: 7 },
+                { keyword: 'Hunter', priority: 6 },
+                
+                // Mods básicos de alto valor
+                { keyword: 'Flow', priority: 5 }, // Capacidad de energía
+                { keyword: 'Serration', priority: 5 }, // Daño (Armas Primarias)
+                { keyword: 'Point Blank', priority: 5 }, // Daño (Escopetas)
+                { keyword: 'Intensify', priority: 5 }, // Fuerza de Habilidad
+                { keyword: 'Vitality', priority: 5 }, // Salud
+                { keyword: 'Steel Fiber', priority: 5 }, // Armadura
+                { keyword: 'Redirection', priority: 5 }, // Escudos
+
+                // Mods de utilidad/condición
+                { keyword: 'Streamline', priority: 4 }, // Eficiencia
+                { keyword: 'Split Chamber', priority: 4 }, // Multidisparo
+                { keyword: 'Critical', priority: 4 }, // Crítico
+                { keyword: 'Sense', priority: 4 }, // Crítico
+                { keyword: 'Rage', priority: 4 }, // Conversión de daño a energía
+                { keyword: 'Quick Thinking', priority: 3 }, // Supervivencia
+                { keyword: 'Rush', priority: 3 }, // Movilidad
+                
+                // Mods de bajo impacto o nicho
+                { keyword: 'Vigor', priority: 2 },
+                { keyword: 'Ammo', priority: 1 },
+                { keyword: 'Drum', priority: 1 },
+            ];
             
-            if (selectedModsArray.length <= 8) {
-                // Si tienes 8 o menos mods, todos son la "mejor" build.
-                optimalBuild = selectedModsArray;
-            } else {
-                // PLACEHOLDER: solo toma los primeros 8 mods para llenar los slots.
-                optimalBuild = selectedModsArray.slice(0, 8); 
-            }
-            // -------------------------------------------------------------------
+            // Función de puntuación del Mod
+            const getModScore = (modName) => {
+                let score = 0;
+                let foundKeyword = false;
+
+                // 1. Puntuación por rareza/poder (heurística principal)
+                for (const item of priorityKeywords) {
+                    if (modName.includes(item.keyword)) {
+                        score += item.priority;
+                        foundKeyword = true;
+                        // Si es un mod Primed/Umbral, tiene prioridad absoluta
+                        if (item.priority >= 8) return score; 
+                    }
+                }
+                
+                // 2. Puntuación de desempate (longitud del nombre para preferencia)
+                // Mods con nombres más largos a menudo son mods elementales o de condición
+                score += modName.length * 0.01; 
+                
+                // 3. Puntuación base si no se encuentra palabra clave
+                if (!foundKeyword) {
+                    score += 1;
+                }
+
+                return score;
+            };
+
+
+            // Paso 2: Evaluación y Ordenamiento de Mods
+            // Se mapea cada mod seleccionado a un objeto con su nombre y puntuación.
+            let scoredMods = selectedModsArray.map(mod => ({
+                name: mod,
+                score: getModScore(mod)
+            }));
+
+            // Se ordenan los mods de mayor a menor puntuación.
+            scoredMods.sort((a, b) => b.score - a.score);
+
+
+            // Paso 3: Selección de los Mejores Mods (Top 8)
+            // Se toman los 8 mods con la puntuación más alta.
+            let optimalBuild = scoredMods.slice(0, maxSlots).map(mod => mod.name);
+            
+            // --- FIN DE LA LÓGICA DEL SISTEMA INTELIGENTE (ALGORITMO DE OPTIMIZACIÓN) ---
 
             // Actualizar la Página 3 con los resultados
             const targetName = selectedItem + (selectedWeaponType ? ` (${selectedWeaponType})` : '');
@@ -656,7 +716,8 @@
                     slot.textContent = optimalBuild[index];
                     slot.classList.add('filled');
                 } else {
-                    slot.textContent = 'MODS HERE';
+                    // Rellena los slots restantes como vacíos (no óptimo)
+                    slot.textContent = `SLOT ${index + 1} / NO MOD ÓPTIMO`; 
                 }
             });
 
