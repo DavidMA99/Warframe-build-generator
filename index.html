@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warframe - Build Optimizer (Sistema Experto)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #1a1a1a; /* Fondo oscuro */
+            color: #f0f0f0; /* Texto claro */
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #2c2c2c;
+            border: 3px solid #6c6c6c;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .page {
+            display: none;
+            text-align: center;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        header h1 {
+            color: #4CAF50; /* Color Verde de Warframe */
+            margin-bottom: 5px;
+        }
+
+        header h2 {
+            color: #888;
+            font-size: 1.2em;
+            margin-top: 0;
+        }
+
+        /* --- Page 1: Selection --- */
+        .selection-buttons {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .select-btn {
+            flex-grow: 1;
+            min-width: 150px;
+            padding: 20px 10px;
+            background-color: #3a3a3a;
+            color: #f0f0f0;
+            border: 2px solid #555;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .select-btn:hover:not(.disabled) {
+            background-color: #4a4a4a;
+        }
+
+        .select-btn.selected {
+            border-color: #4CAF50;
+            box-shadow: 0 0 10px #4CAF5080;
+        }
+
+        .select-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .content-selection {
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .content-selection label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        #item-select, #weapon-type-select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #555;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            border-radius: 5px;
+        }
+
+        .main-btn {
+            padding: 15px 30px;
+            background-color: #4CAF50;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 20px;
+        }
+
+        .main-btn:hover:not(:disabled) {
+            background-color: #6edb72;
+        }
+
+        .main-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            color: #aaa;
+        }
+
+        /* --- Page 2: Mod Selection --- */
+        .mod-actions {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        #mod-search {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #555;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            border-radius: 5px;
+            min-width: 150px;
+        }
+
+        .mod-actions button {
+            padding: 10px 15px;
+            background-color: #555;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .mod-actions button:hover {
+            background-color: #777;
+        }
+
+        #mods-list-container {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #555;
+            padding: 10px;
+            background-color: #1a1a1a;
+            border-radius: 5px;
+            text-align: left;
+        }
+
+        .mod-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #3a3a3a;
+        }
+
+        .mod-item:last-child {
+            border-bottom: none;
+        }
+
+        .mod-name {
+            flex-grow: 1;
+        }
+
+        .mod-toggle-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+            width: 120px;
+        }
+
+        .mod-toggle-btn.owned {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .mod-toggle-btn.not-owned {
+            background-color: #d9534f;
+            color: white;
+        }
+
+        /* --- Page 3: Build Result --- */
+        .build-display {
+            background-color: #1a1a1a;
+            border: 2px solid #555;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 8px;
+        }
+
+        .mod-slots-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .mod-slot {
+            background-color: #333;
+            border: 2px dashed #6c6c6c;
+            color: #aaa;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 5px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .mod-slot.filled {
+            border: 2px solid #f9f9f9;
+            background-color: #4a4a4a;
+            color: #f0f0f0;
+            font-weight: bold;
+        }
+
+        .result-actions {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+
+        .share-btn { background-color: #007bff; color: white; }
+        .save-btn { background-color: #ffc107; color: #1a1a1a; }
+        .edit-btn { background-color: #17a2b8; color: white; }
+        .back-btn { background-color: #6c757d; color: white; }
+
+        .share-btn:hover { background-color: #0056b3; }
+        .save-btn:hover { background-color: #e0a800; }
+        .edit-btn:hover { background-color: #138496; }
+        .back-btn:hover { background-color: #5a6268; }
+
+        .secondary-btn {
+            background: none;
+            border: 1px solid #777;
+            color: #ccc;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .secondary-btn:hover {
+            background-color: #3a3a3a;
+        }
+
+        .warning-text {
+            color: #ff4d4d;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <script id="data-warframes" type="text/plain">
+        Ash, Atlas, Banshee, Baruuk, Caliban, Chroma, Citrine, Cyte-09, Dagath, Dante, Ember, Equinox, Excalibur, Frost, Gara, Garuda, Gauss, Grendel, Gyre, Harrow, Hildryn, Hydroid, Inaros, Ivara, Jade, Khora, Koumei, Kullervo, Lavos, Limbo, Loki, Mag, Mesa, Mirage, Nekros, Nezha, Nidus, Nova, Nyx, Oberon, Octavia, Oraxia, Protea, Qorvex, Revenant, Rhino, Saryn, Sevagoth, Styanax, Temple, Titania, Trinity, Valkyr, Vauban, Volt, Voruna, Wisp, Wukong, Xaku, Yareli, Zephyr
+    </script>
+    <script id="data-weapons" type="text/plain">
+        Acceltra Prime, Acceltra, Ack & Brunt, Acrid, Adarza Claws, Aegrit, Aeolak, Afentis, Afuris Prime, Afuris, Agkuza, Akarius Prime, Akarius, Akaten, Akbolto Prime, Akbolto, Akbronco Prime, Akbronco, Akjagara Prime, Akjagara, Aklato, Aklex Prime, Aklex, Akmagnus Prime, Akmagnus, Aksomati Prime, Aksomati, Akstiletto Prime, Akstiletto, Akvasto Prime, Akvasto, Akvasto, Akzani, Alternox, Amanata, Ambassador, Amphis, Amprex, Angstrum, Anku, Ankyros Prime, Ankyros, Apoc MK I, Apoc MK II, Apoc MK III, Apoc, Arbucep (Atmosphere), Arbucep, Arca Plasmor, Arca Scisco, Arca Titron, Argo & Vel, Argonak, Arquebex, Artax, Artemis Bow Prime, Artemis Bow, Arum Spinosa, Astilla Prime, Astilla, Athodai, Atomos, Atterax, Attica, AX-52, Azima, Azothane, Balefire Charger Prime, Balefire Charger, Balla, Ballistica Prime, Ballistica, Basmu, Batoten, Battacor, Baza Prime, Baza, Bo Prime, Bo, Boar Prime, Boar, Boltace, Bolto, Boltor Prime, Boltor, Brakk, Braton Prime, Braton Vandal, Braton, Broken Scepter, Broken War, Bronco Prime, Bronco, Bubonico, Burst Laser Prime, Burst Laser, Burston Prime, Burston, Buzlok, Cadus, Cantare, Cantic Prism, Carcinnox MK I, Carcinnox MK II, Carcinnox MK III, Carcinnox, Carmine Penta, Cassowar, Castanas, Catabolyst, Catchmoon (Primary), Catchmoon (Secondary), Caustacyst, Cedo Prime, Cedo, Centaur, Ceramic Dagger, Cerata, Cernos Prime, Cernos, Cestra, Ceti Lacera, Chesa Claws, Cinta, Cobra & Crane Prime, Cobra & Crane, Coda Bassocyst, Coda Catabolyst, Coda Caustacyst, Coda Hema, Coda Hirudo, Coda Mire, Coda Motovore, Coda Pathocyst, Coda Pox, Coda Sporothrix, Coda Synapse, Coda Tysis, Convectrix, Corinth Prime, Corinth, Cortege (Atmosphere), Cortege, Corufell, Corvas (Atmosphere), Corvas Prime (Atmosphere), Corvas Prime, Corvas, Crescent Claws, Cronus, Cryophon MK I, Cryophon MK II, Cryophon MK III, Cryophon, Cryotra, Cyanex, Cyath, Cycron, Cyngas (Atmosphere), Cyngas, Daikyu Prime, Daikyu, Dakra Prime, Dargyn, Dark Dagger, Dark Split-Sword (Dual Swords), Dark Split-Sword (Heavy Blade), Dark Sword, Deconstructor Prime, Deconstructor, Dehtat, Dera Vandal, Dera, Desert Wind Prime, Desert Wind, Despair, Destreza Prime, Destreza, Deth Machine Rifle Prime, Deth Machine Rifle, Detron, Dex Dakra, Dex Furis, Dex Nikana, Dex Pixia Prime, Dex Pixia, Dex Sybaris, Dissic Scaffold, Diwata Prime, Diwata, Dokrahm, Dorrclave, Dragon Nikana, Drakgoon, Dread, Dual Cestra, Dual Cleavers, Dual Coda Torxica, Dual Decurion (Atmosphere), Dual Decurion, Dual Ether, Dual Heat Swords, Dual Ichor, Dual Kamas Prime, Dual Kamas, Dual Keres Prime, Dual Keres, Dual Raza, Dual Skana, Dual Toxocyst, Dual Viciss, Dual Zoren Prime, Dual Zoren, Ebisu Spear, Edun, EFV-5 Jupiter, EFV-8 Mars, Ekhein, Embolist, Endura, Epitaph Prime, Epitaph, Ether Daggers, Ether Reaper, Ether Sword, Euphona Prime, Evensong, Exalted Blade, Exalted Prime Blade, Exalted Umbra Blade, Exard Scaffold, Exergis, Falcor, Fang Prime, Fang, Felarx, Ferrox, Lob Blobs, Noodletron, Fluctus (Atmosphere), Fluctus, Flux Rifle, Fragor Prime, Fragor, Fulmin Prime, Fulmin, Furax Wraith, Furax, Furis, Fusilai, Galatine Prime, Galatine, Galvacord, Galvarc MK I, Galvarc MK II, Galvarc MK III, Galvarc, Gammacor, Garuda Prime Talons, Garuda Talons, Gazal Machete, Gaze (Primary), Gaze (Secondary), Ghoulsaw, Glaive Prime, Glaive, Glaxion Vandal, Glaxion, Glazio MK I, Glazio MK II, Glazio MK III, Glory, Gorgon Wraith, Gorgon, Gotva Prime, Grakata, Gram Prime, Gram, Granmu Prism, Grattler (Atmosphere), Grattler, Grimoire, Grinlok, Guandao Prime, Guandao, Gunsen Prime, Gunsen, Halikar Wraith, Halikar, Hand Grenade, Harmony, Harpak, Hate, Heat Dagger, Heat Sword, Hek, Heliocor, Helminth Claws, Helstrum, Hema, Hespar, Higasa, Hikou Prime, Hikou, Hind, Hirudo, Huras Claws, Hystrix Prime, Hystrix, Ignis Wraith, Ignis, Imperator (Atmosphere), Imperator Vandal (Atmosphere), Imperator Vandal, Imperator, Innodem, Iron Staff Prime, Iron Staff, Ironbride, Jat Kittag, Jat Kusar, Javlok, Jaw Sword, Kama, Karak Wraith, Karak, Karyst Prime, Karyst, Kaszas, Keratinos, Kesheg, Kestrel, Klamora Prism, Klebrik Scaffold, Knell Prime, Knell, Knux, Kogake Prime, Kogake, Kohm, Kohmak, Komorex, Kompressa Prime, Kompressa, Korrudo, Korumm, Kraken, Kreska, Krohkur, Kronen Prime, Kronen, Kronsh, Kulstar, Kunai, Kuva Ayanga (Atmosphere), Kuva Ayanga, Kuva Brakk, Kuva Bramma, Kuva Chakkhurr, Kuva Drakgoon, Kuva Grattler (Atmosphere), Kuva Grattler, Kuva Hek, Kuva Hind, Kuva Karak, Kuva Kohm, Kuva Kraken, Kuva Nukor, Kuva Ogris, Kuva Quartakk, Kuva Seer, Kuva Shildeg, Kuva Sobek, Kuva Tonkor, Kuva Twin Stubbas, Kuva Zarr, Lacera, Lacerten, Laetum, Laith MK I, Laith MK II, Laith MK III, Landslide Fists Prime, Landslide Fists, Lanka, Lanzo Fishing Spear, Larkspur (Atmosphere), Larkspur Prime (Atmosphere), Larkspur Prime, Larkspur, Laser Rifle, Lato Prime, Lato Vandal, Lato, Latron Prime, Latron Wraith, Latron, Lavan Apoc MK I, Lavan Apoc MK II, Lavan Apoc MK III, Lavan Carcinnox MK I, Lavan Carcinnox MK II, Lavan Carcinnox MK III, Lavan Cryophon MK I, Lavan Cryophon MK II, Lavan Cryophon MK III, Lavan Glazio MK I, Lavan Glazio MK II, Lavan Glazio MK III, Lavan Laith MK I, Lavan Laith MK II, Lavan Laith MK III, Lavan Photor MK I, Lavan Photor MK II, Lavan Photor MK III, Lavan Pulsar MK I, Lavan Pulsar MK II, Lavan Pulsar MK III, Lavan Talyn MK I, Lavan Talyn MK II, Lavan Talyn MK III, Lavan Vort MK I, Lavan Vort MK II, Lavan Vort MK III, Lecta, Lega Prism, Lenz, Lesion, Lex Prime, Lex, Lizzie, Machete Wraith, Machete, Magistar, Magnus Prime, Magnus, Mandonel (Atmosphere), Mandonel, Mara Detron, Marelok, Masseter Prime, Masseter, Mausolon (Atmosphere), Mausolon, Medjay Claws, Mewan, Milati MK I, Milati MK II, Milati MK III, Milati, Mios, Mire, Miter, MK1-Bo, MK1-Braton, MK1-Furax, MK1-Furis, MK1-Kunai, MK1-Paris, MK1-Strun, Morgha (Atmosphere), Morgha, Mote Amp, Multron, Mutalist Cernos, Mutalist Quanta, Nagantaka Prime, Nagantaka, Nami Skyla Prime, Nami Skyla, Nami Solo, Nataruk, Nepheri, Neutralizer, Nikana Prime, Nikana, Ninkondi Prime, Ninkondi, Noctua, Nukor, Obex, Ocucor, Ogris, Ohma, Okina Prime, Okina, Onorix, Onos, Ooltha, Opticor Vandal, Opticor, Orthos Prime, Orthos, Orvius, Pandero Prime, Pandero, Pangolin Prime, Pangolin Sword, Panthera Prime, Panthera, Panzer Claws, Paracesis, Paracyst, Parazon, Paris Prime, Paris, Pathocyst, Pencha Scaffold, Pennant, Penta, Peram Fishing Spear, Perigale, Phaedra (Atmosphere), Phaedra, Phage, Phahd Scaffold, Phantasma Prime, Phantasma, Pharaoh Claws, Phenmor, Photor MK I, Photor MK II, Photor MK III, Photor, Plague Keewar, Plague Kripath, Plasma Sword, Plinx, Pox, Praedos, Prime Laser Rifle, Prisma Angstrum, Prisma Burst Laser, Prisma Dual Cleavers, Prisma Dual Decurions (Atmosphere), Prisma Dual Decurions, Prisma Gorgon, Prisma Grakata, Prisma Grinlok, Prisma Lenz, Prisma Machete, Prisma Obex, Prisma Ohma, Prisma Skana, Prisma Tetra, Prisma Twin Gremlins, Prisma Veritux, Proboscis Cernos, Propa Scaffold, Prova Vandal, Prova, Pugil, Pulmonars, Pulsar MK I, Pulsar MK II, Pulsar MK III, Pulsar, Pupacyst, Purgator 1, Pyrana Prime, Pyrana, Quanta Vandal, Quanta, Quartakk, Quassus Prime, Quassus, Quatz, Quellor, Rabvee, Rahn Prism, Raksa Claws, Rakta Ballistica, Rakta Cernos, Rakta Dark Dagger, Rampart, Raplak Prism, Rathbone, Rattleguts (Primary), Rattleguts (Secondary), Rauta, Razorflies, Reaper Prime, Reconifex, Redeemer Prime, Redeemer, Regulators Prime, Regulators, Riot-848, Ripkas, Rubico Prime, Rubico, Rumblejack, Ruvox, Sahasa Claws, Sampotes, Sancti Castanas, Sancti Magistar, Sancti Tigris, Sarofang, Sarpa, Scindo Prime, Scindo, Scoliac, Scourge Prime, Scourge, Scyotid, Secura Dual Cestra, Secura Lecta, Secura Penta, Seer, Sepfahn, Sepulcrum, Serro, Shadow Claws Prime, Shadow Claws, Shadow Clones Prime, Shadow Clones, Shaku, Shattered Lash Prime, Shattered Lash, Shedu, Sheev, Shockprod Fishing Spear, Shraksun Scaffold, Shwaak Prism, Sibear, Sicarus Prime, Sicarus, Sigma & Octantis, Silva & Aegis Prime, Silva & Aegis, Simulor, Sirocco, Skana Prime, Skana, Skiajati, Slaytra, Sly Claws, Smeeta Claws, Snipetron Vandal, Snipetron, Soaktron, Sobek, Soma Prime, Soma, Sonicor, Spari Spear, Spectra Vandal, Spectra, Spinnerex, Spira Prime, Spira, Sporelacer (Primary), Sporelacer (Secondary), Sporothrix, Stahlta, Staticor, Steflos, Stinger, Stradavar Prime, Stradavar, Stropha, Strun Prime, Strun Wraith, Strun, Stubba, Stug, Stunna Fishing Spear, Sun & Moon, Sunika Claws, Supra Vandal, Supra, Sweeper Prime, Sweeper, Syam, Sybaris Prime, Sybaris, Sydon, Synapse, Synoid Gammacor, Synoid Heliocor, Synoid Simulor, Tak & Lug, Talons, Talyn MK I, Talyn MK II, Talyn MK III, Tatsu Prime, Tatsu, Tazicor, Tekko Prime, Tekko, Telos Akbolto, Telos Boltace, Telos Boltor, Tenet Agendus, Tenet Arca Plasmor, Tenet Cycron, Tenet Detron, Tenet Diplos, Tenet Envoy, Tenet Exec, Tenet Ferrox, Tenet Flux Rifle, Tenet Glaxion, Tenet Grigori, Tenet Livia, Tenet Plinx, Tenet Spirex, Tenet Tetra, Tenora Prime, Tenora, Tetra, Thalys, Thornbak, Tiberon Prime, Tiberon, Tigris Prime, Tigris, Tipedo Prime, Tipedo, Tombfinger (Primary), Tombfinger (Secondary), Tonbo, Tonkkatt, Tonkor, Torid, Trumna Prime, Trumna, Tulok Fishing Spear, Tunguska Cannon, Twin Basolk, Twin Grakatas, Twin Gremlins, Twin Kohmak, Twin Krohkur, Twin Rogga, Twin Vipers Wraith, Twin Vipers, Tycho Seeker MK I, Tycho Seeker MK II, Tycho Seeker MK III, Tycho Seeker, Tysis, Unarmed, Vadarya Prime, Valkyr Prime Talons, Valkyr Talons, Vasca Claws, Vastilok, Vasto Prime, Vasto, Vaykor Hek, Vaykor Marelok, Vaykor Sydon, Vectis Prime, Vectis, Veldt, Velocitus (Atmosphere), Velocitus, Velox Prime, Velox, Venari Claws, Venari Prime Claws, Venato Prime, Venato, Venka Prime, Venka, Verdilac, Verglas Prime, Verglas, Vericres, Veritux, Vermisplicer (Primary), Vermisplicer (Secondary), Vesper 77, Vidar Apoc MK I, Vidar Apoc MK II, Vidar Apoc MK III, Vidar Carcinnox MK I, Vidar Carcinnox MK II, Vidar Carcinnox MK III, Vidar Cryophon MK I, Vidar Cryophon MK II, Vidar Cryophon MK III, Vidar Glazio MK I, Vidar Glazio MK II, Vidar Glazio MK III, Vidar Laith MK I, Vidar Laith MK II, Vidar Laith MK III, Vidar Photor MK I, Vidar Photor MK II, Vidar Photor MK III, Vidar Pulsar MK I, Vidar Pulsar MK II, Vidar Pulsar MK III, Vidar Talyn MK I, Vidar Talyn MK II, Vidar Talyn MK III, Vidar Vort MK I, Vidar Vort MK II, Vidar Vort MK III, Viper Wraith, Viper, Vitrica, Vizier Claws, Volnus Prime, Volnus, Vort MK I, Vort MK II, Vort MK III, Vulcax, Vulkar Wraith, Vulkar, Vulklok, War, Whipclaw Prime, Whipclaw, Wolf Sledge, Xoris, Zakti Prime, Zakti, Zarr, Zenistar, Zenith, Zetki Apoc MK I, Zetki Apoc MK II, Zetki Apoc MK III, Zetki Carcinnox MK I, Zetki Carcinnox MK II, Zetki Carcinnox MK III, Zetki Cryophon MK I, Zetki Cryophon MK II, Zetki Cryophon MK III, Zetki Glazio MK I, Zetki Glazio MK II, Zetki Glazio MK III, Zetki Laith MK I, Zetki Laith MK II, Zetki Laith MK III, Zetki Photor MK I, Zetki Photor MK II, Zetki Photor MK III, Zetki Pulsar MK I, Zetki Pulsar MK II, Zetki Pulsar MK III, Zetki Talyn MK I, Zetki Talyn MK II, Zetki Talyn MK III, Zetki Vort MK I, Zetki Vort MK II, Zetki Vort MK III, Zhuge Prime, Zhuge, Zylok Prime, Zylok, Zymos
+    </script>
+    <script id="data-mods-warframe" type="text/plain">
+        Adaptation, Adept Surge, Adrenaline Boost, Aero Vantage, Agility Drift, Air Thrusters, Amar's Anguish, Amar's Hatred, Anti-Flak Plating, Anticipation, Antitoxin, Archon Continuity, Archon Flow, Archon Intensify, Archon Stretch, Archon Vitality, Armored Acrobatics, Armored Agility, Armored Evade, Armored Recovery, Augur Accord, Augur Message, Augur Reach, Augur Secrets, Aviator, Battering Maneuver, Blind Rage, Boreal's Anguish, Boreal's Hatred, Calculated Spring, Carnis Carapace, Catalyzing Shields, Coaction Drift, Constitution, Continuity, Cunning Drift, Diamond Skin, Endurance Drift, Enemy Sense, Energy Conversion, Energy Nexus, Equilibrium, Fast Deflection, Final Act, Firewalker, Flame Repellent, Fleeting Expertise, Flow, Follow Through, Fortitude, Gale Kick, Gladiator Aegis, Gladiator Finesse, Gladiator Resolve, Handspring, Hastened Steps, Health Conversion, Heavy Impact, Heightened Reflexes, Hunter Adrenaline, Ice Spring, Insulation, Intensify, Jugulus Carapace, Kavat's Grace, Lightning Dash, Lightning Rod, Maglev, Master Thief, Mecha Pulse, Mobilize, Motus Signal, Narrow Minded, Natural Talent, Nira's Anguish, Nira's Hatred, No Current Leap, Overcharge Detectors, Overcharged, Overextended, Pain Threshold, Patagium, Peculiar Audience, Peculiar Bloom, Peculiar Growth, Piercing Step, Power Drift, Precision Intensify, Preparation, Primed Continuity, Primed Flow, Primed Redirection, Primed Sure Footed, Primed Vigor, Proton Pulse, Provoked, Quick Charge, Quick Thinking, Rage, Rapid Resilience, Redirection, Reflection, Reflex Guard, Rending Turn, Retribution, Rime Vault, Rising Skill, Rolling Guard, Rush, Saxum Carapace, Searing Leap, Shock Absorbers, Speed Drift, Stealth Drift, Steel Fiber, Strain Consume, Streamline, Streamlined Form, Stretch, Sure Footed, Surplus Diverters, Synth Reflex, Tactical Retreat, Tek Collateral, Tempered Bound, Thief's Wit, Toxic Flight, Transient Fortitude, Umbral Fiber, Umbral Intensify, Umbral Vitality, Undying Will, Venomous Rise, Vigilante Pursuit, Vigilante Vigor, Vigor, Vigorous Swap, Vital Systems Bypass, Vitality, Voltaic Lance, Warm Coat
+    </script>
+    <script id="data-mods-rifle" type="text/plain">
+        Adhesive Blast, Aerial Ace, Agile Aim, Amalgam Serration, Ammo Drum, Apex Predator, Argon Scope, Bane of Corpus, Bane of Grineer, Bane of Infested, Bane of Orokin, Bane of The Murmur, Bladed Rounds, Catalyzer Link, Cautious Shot, Comet Rounds, Continuous Misery, Crash Course, Critical Delay, Cryo Rounds, Eagle Eye, Fanged Fusillade, Fast Hands, Firestorm, Galvanized Aptitude, Galvanized Chamber, Galvanized Scope, Hammer Shot, Heavy Caliber, Hellfire, High Voltage, Hush, Infected Clip, Internal Bleeding, Lucky Shot, Magazine Warp, Magnetic Capacity, Malignant Force, Metal Auger, Piercing Caliber, Piercing Hit, Point Strike, Primary Acuity, Primed Bane of Corpus, Primed Bane of Grineer, Primed Bane of Infested, Primed Bane of Orokin, Primed Bane of The Murmur, Primed Cryo Rounds, Primed Fast Hands, Primed Firestorm, Primed Magazine Warp, Primed Shred, Primed Stabilizer, Proton Jet, Radiated Reload, Recover, Rifle Aptitude, Rifle Elementalist, Rime Rounds, Ripper Rounds, Rupture, Sawtooth Clip, Semi-Rifle Cannonade, Serrated Rounds, Serration, Shred, Sinister Reach, Spectral Serration, Speed Trigger, Split Chamber, Stabilizer, Stormbringer, Terminal Velocity, Thermite Rounds, Twitch, Vanquished Prey, Vile Acceleration, Vile Precision, Vital Sense, Wildfire
+    </script>
+    <script id="data-mods-shotgun" type="text/plain">
+        Accelerated Blast, Amalgam Shotgun Barrage, Ammo Stock, Atomic Fallout, Blaze, Blunderbuss, Bounty Hunter, Breach Loader, Broad Eye, Burdened Magazine, Charged Shell, Chilling Grasp, Chilling Reload, Cleanse Corpus, Cleanse Orokin, Cleanse Grineer, Cleanse Infested, Cleanse The Murmur, Contagious Spread, Counterbalance, Crash Shot, Critical Deceleration, Disruptor, Double-Barrel Drift, Fatal Acceleration, Flak Shot, Flechette, Frail Momentum, Frigid Blast, Galvanized Acceleration, Galvanized Hell, Galvanized Savvy, Full Contact, Hell's Chamber, Hydraulic Chamber, Incendiary Coat, Kill Switch, Laser Sight, Lingering Torment, Loaded Capacity, Lock and Load, Loose Chamber, Magnetic Strafe, Magnetic Welt, Momentary Pause, Motus Setup, Nano-Applicator, Narrow Barrel, Point Blank, Primed Ammo Stock, Primed Charged Shell, Primed Chilling Grasp, Primed Cleanse Corpus, Primed Cleanse Orokin, Primed Cleanse Grineer, Primed Cleanse Infested, Primed Cleanse The Murmur, Primed Ravage, Primed Point Blank, Primed Shotgun Ammo Mutation, Primed Tactical Pump, Prize Kill, Ravage, Repeater Clip, Scattering Inferno, Seeking Force, Seeking Fury, Semi-Shotgun Cannonade, Shell Compression, Shell Shock, Shotgun Ammo Mutation, Shotgun Elementalist, Shotgun Savvy, Shotgun Barrage, Shrapnel Shot, Shred Shot, Shredder, Silent Battery, Snap Shot, Soft Hands, Sweeping Serration, Tactical Pump, Tainted Shell, Toxic Barrage, Vicious Spread
+    </script>
+
+    <div class="container">
+        <div id="page-1-selection" class="page active">
+            <header>
+                <h1>SISTEMA EXPERTO DE BUILDS AUTOMÁTICAS</h1>
+                <h2>BUILD OPTIMIZER</h2>
+                <p>Genera builds automáticas según tus mods disponibles</p>
+            </header>
+
+            <div class="selection-buttons">
+                <button class="select-btn" data-type="warframe">
+                    <i class="icon-warframe"></i> WARFRAME
+                </button>
+                <button class="select-btn" data-type="weapon">
+                    <i class="icon-weapon"></i> WEAPON
+                </button>
+                <button class="select-btn disabled" disabled>
+                    <i class="icon-companion"></i> COMPANION
+                </button>
+                <button class="select-btn disabled" disabled>
+                    <i class="icon-necramech"></i> NECRAMECH
+                </button>
+            </div>
+
+            <div class="content-selection">
+                <label for="item-select">Selecciona tu Warframe / Arma:</label>
+                <select id="item-select"></select>
+
+                <div id="weapon-type-selection" style="display: none;">
+                    <label for="weapon-type-select">Selecciona el Tipo de Arma (para Mods):</label>
+                    <select id="weapon-type-select">
+                        <option value="">-- Selecciona Tipo --</option>
+                        <option value="rifle">Rifle (mods rifle.txt)</option>
+                        <option value="shotgun">Escopeta (mods shotgun.txt)</option>
+                        </select>
+                </div>
+            </div>
+
+            <button id="start-build-btn" class="main-btn" disabled onclick="startBuild()">COMENZAR</button>
+        </div>
+
+        <div id="page-2-mod-selection" class="page">
+            <header>
+                <h2>SELECCIONA LOS MODS QUE TIENES DISPONIBLES</h2>
+                <p id="mod-target-info">Build para: **Warframe Seleccionado**</p>
+            </header>
+
+            <div class="mod-actions">
+                <input type="text" id="mod-search" placeholder="Buscar mods..." onkeyup="filterMods()">
+                <button onclick="toggleAllMods(true)">SELECCIONAR TODOS</button>
+                <button onclick="toggleAllMods(false)">QUITAR SELECCIÓN DE TODOS</button>
+            </div>
+
+            <div id="mods-list-container">
+                </div>
+
+            <button class="main-btn" onclick="generateBuild()">GENERAR BUILD</button>
+            <button class="secondary-btn" onclick="showPage('page-1-selection')">REGRESAR A SELECCIÓN</button>
+        </div>
+
+        <div id="page-3-build-result" class="page">
+            <header>
+                <h2>BUILD GENERATED</h2>
+                <p id="build-result-target">Build Óptima para: **Warframe/Arma**</p>
+            </header>
+
+            <div class="build-display">
+                <div class="mod-slots-grid">
+                    <div class="mod-slot">MODS HERE</div>
+                    <div class="mod-slot">MODS HERE</div>
+                    <div class="mod-slot">MODS HERE</div>
+                    <div class="mod-slot">MODS HERE</div>
+                    <div class="mod-slot">MODS HERE</div>
+                    <div class="mod-slot">MODS HERE</div>
+                    <div class="mod-slot">MODS HERE</div>
+                    <div class="mod-slot">MODS HERE</div>
+                </div>
+            </div>
+
+            <p class="warning-text">**Nota:** Los mods mostrados son solo de ejemplo. La lógica de optimización real debe ser implementada en la función `generateBuild()`.</p>
+
+            <div class="result-actions">
+                <button class="action-btn share-btn" onclick="alert('Funcionalidad de Captura de Pantalla/Compartir (Share)')">SHARE</button>
+                <button class="action-btn save-btn" onclick="alert('Funcionalidad de Nombrar y Guardar Build')">NAME AND SAVE YOUR BUILD</button>
+                <button class="action-btn edit-btn" onclick="showPage('page-2-mod-selection')">EDIT MOD LIST</button>
+                <button class="action-btn back-btn" onclick="showPage('page-1-selection')">GO BACK TO TYPE OF BUILD SELECTION</button>
+                <button class="action-btn back-btn" onclick="showPage('page-1-selection')">GO BACK TO HOME PAGE</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedType = null;
+        let selectedItem = null;
+        let selectedWeaponType = null;
+        let modData = {};
+        let availableMods = [];
+        let userMods = new Set(); // Conjunto para rastrear los mods seleccionados por el usuario
+
+        // --- 1. SETUP INICIAL ---
+
+        /** Carga y limpia los datos de las etiquetas <script> */
+        function loadData() {
+            const cleanData = (id) => {
+                const raw = document.getElementById(id).textContent;
+                // Limpia espacios, saltos de línea y símbolos de lista, luego separa por comas
+                return raw.replace(/(\r\n|\n|\r)/gm, '').split(',')
+                          .map(item => item.trim())
+                          .filter(item => item.length > 0 && !item.includes('File:')); // Filtra elementos vacíos o referencias a archivos
+            };
+
+            modData.warframe = cleanData('data-mods-warframe');
+            modData.rifle = cleanData('data-mods-rifle');
+            modData.shotgun = cleanData('data-mods-shotgun');
+            modData.warframesList = cleanData('data-warframes');
+            modData.weaponsList = cleanData('data-weapons');
+
+            loadSelectionData();
+        }
+
+        /** Llena los selectores de Warframe/Arma */
+        function loadSelectionData() {
+            const itemSelect = document.getElementById('item-select');
+            itemSelect.innerHTML = '<option value="">-- Selecciona un Objeto --</option>';
+        }
+
+        /** Muestra la página deseada y oculta las demás */
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(pageId).classList.add('active');
+            
+            // Si regresa a la página 2, recarga la lista de mods
+            if (pageId === 'page-2-mod-selection') {
+                loadModList(availableMods);
+            }
+        }
+
+
+        // --- 2. LÓGICA DE SELECCIÓN (PÁGINA 1) ---
+
+        document.querySelectorAll('.select-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                if (this.classList.contains('disabled')) return;
+
+                // Limpiar selección previa
+                document.querySelectorAll('.select-btn').forEach(btn => btn.classList.remove('selected'));
+                this.classList.add('selected');
+                
+                selectedType = this.getAttribute('data-type');
+                const itemSelect = document.getElementById('item-select');
+                const weaponTypeDiv = document.getElementById('weapon-type-selection');
+                const startBtn = document.getElementById('start-build-btn');
+                
+                // Limpiar selectores
+                itemSelect.innerHTML = '<option value="">-- Selecciona un Objeto --</option>';
+                weaponTypeDiv.style.display = 'none';
+                
+                // Llenar selector según el tipo
+                const list = selectedType === 'warframe' ? modData.warframesList : modData.weaponsList;
+                list.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item;
+                    option.textContent = item;
+                    itemSelect.appendChild(option);
+                });
+
+                // Mostrar selector de tipo de arma si es necesario
+                if (selectedType === 'weapon') {
+                    weaponTypeDiv.style.display = 'block';
+                }
+
+                // Habilitar botón si hay un tipo seleccionado
+                startBtn.disabled = true;
+            });
+        });
+
+        document.getElementById('item-select').addEventListener('change', function() {
+            selectedItem = this.value;
+            updateStartButtonState();
+        });
+
+        document.getElementById('weapon-type-select').addEventListener('change', function() {
+            selectedWeaponType = this.value;
+            updateStartButtonState();
+        });
+
+        function updateStartButtonState() {
+            const startBtn = document.getElementById('start-build-btn');
+            startBtn.disabled = true;
+
+            if (selectedType === 'warframe' && selectedItem) {
+                startBtn.disabled = false;
+            } else if (selectedType === 'weapon' && selectedItem && selectedWeaponType) {
+                startBtn.disabled = false;
+            }
+        }
+
+
+        /** Pasa de la Página 1 a la Página 2 y carga la lista de mods correcta */
+        function startBuild() {
+            if (!selectedType || !selectedItem) return;
+
+            // 1. Determinar qué lista de mods cargar
+            if (selectedType === 'warframe') {
+                availableMods = modData.warframe;
+            } else if (selectedType === 'weapon') {
+                if (selectedWeaponType === 'rifle') {
+                    availableMods = modData.rifle;
+                } else if (selectedWeaponType === 'shotgun') {
+                    availableMods = modData.shotgun;
+                } else {
+                    alert('Por favor, selecciona el tipo de arma (Rifle o Escopeta).');
+                    return;
+                }
+            }
+
+            // Actualizar título de la Página 2
+            const targetName = selectedItem + (selectedWeaponType ? ` (${selectedWeaponType})` : '');
+            document.getElementById('mod-target-info').textContent = `Build para: ${targetName}`;
+            
+            // Reiniciar los mods seleccionados al iniciar una nueva build
+            userMods.clear(); 
+            loadModList(availableMods);
+            showPage('page-2-mod-selection');
+        }
+
+
+        // --- 3. LÓGICA DE SELECCIÓN DE MODS (PÁGINA 2) ---
+
+        /** Genera la interfaz de la lista de mods */
+        function loadModList(mods) {
+            const container = document.getElementById('mods-list-container');
+            container.innerHTML = ''; // Limpiar lista anterior
+
+            mods.forEach(mod => {
+                const isOwned = userMods.has(mod);
+                const modItem = document.createElement('div');
+                modItem.classList.add('mod-item');
+                modItem.setAttribute('data-mod-name', mod);
+
+                modItem.innerHTML = `
+                    <span class="mod-name">${mod}</span>
+                    <button class="mod-toggle-btn ${isOwned ? 'owned' : 'not-owned'}" onclick="toggleMod('${mod}', this)">
+                        ${isOwned ? 'LO TENGO' : 'NO LO TENGO'}
+                    </button>
+                `;
+                container.appendChild(modItem);
+            });
+        }
+
+        /** Alterna el estado de un mod individual */
+        function toggleMod(modName, button) {
+            if (userMods.has(modName)) {
+                userMods.delete(modName);
+                button.classList.remove('owned');
+                button.classList.add('not-owned');
+                button.textContent = 'NO LO TENGO';
+            } else {
+                userMods.add(modName);
+                button.classList.remove('not-owned');
+                button.classList.add('owned');
+                button.textContent = 'LO TENGO';
+            }
+        }
+
+        /** Seleccionar todos o quitar la selección de todos */
+        function toggleAllMods(select) {
+            const modButtons = document.querySelectorAll('.mod-toggle-btn');
+            modButtons.forEach(button => {
+                const modName = button.closest('.mod-item').getAttribute('data-mod-name');
+                
+                if (select) { // SELECCIONAR TODOS
+                    if (!userMods.has(modName)) {
+                        userMods.add(modName);
+                        button.classList.remove('not-owned');
+                        button.classList.add('owned');
+                        button.textContent = 'LO TENGO';
+                    }
+                } else { // QUITAR SELECCIÓN DE TODOS
+                    if (userMods.has(modName)) {
+                        userMods.delete(modName);
+                        button.classList.remove('owned');
+                        button.classList.add('not-owned');
+                        button.textContent = 'NO LO TENGO';
+                    }
+                }
+            });
+        }
+
+        /** Filtra la lista de mods con la barra de búsqueda */
+        function filterMods() {
+            const filter = document.getElementById('mod-search').value.toUpperCase();
+            const items = document.getElementById('mods-list-container').getElementsByClassName('mod-item');
+            
+            for (let i = 0; i < items.length; i++) {
+                const modName = items[i].getAttribute('data-mod-name');
+                if (modName.toUpperCase().indexOf(filter) > -1) {
+                    items[i].style.display = "";
+                } else {
+                    items[i].style.display = "none";
+                }
+            }
+        }
+
+        // --- 4. LÓGICA DEL SISTEMA EXPERTO (PÁGINA 3) ---
+
+        /** Placeholder para la función de generación de build del sistema experto */
+        function generateBuild() {
+            const selectedModsArray = Array.from(userMods);
+            
+            if (selectedModsArray.length === 0) {
+                alert('Debes seleccionar al menos un Mod disponible para generar una build.');
+                return;
+            }
+            
+            // --- LÓGICA DEL SISTEMA INTELIGENTE (ALGORITMO DE OPTIMIZACIÓN) ---
+            /* * ESTE ES UN MARCADOR DE POSICIÓN. 
+            * Aquí debe ir el algoritmo real que:
+            * 1. Toma las estadísticas base del Warframe/Arma (NO incluidas en las bases de texto).
+            * 2. Toma las estadísticas de los Mods (NO incluidas en las bases de texto).
+            * 3. Evalúa todas las combinaciones posibles de hasta 8 mods de 'selectedModsArray'
+            * para maximizar una métrica (ej: DPS, Duración de Habilidad, etc.).
+            * * Actualmente, el código de demostración solo toma los primeros 8 mods seleccionados.
+            */
+
+            let optimalBuild = [];
+            
+            if (selectedModsArray.length <= 8) {
+                // Si tienes 8 o menos mods, todos son la "mejor" build.
+                optimalBuild = selectedModsArray;
+            } else {
+                // PLACEHOLDER: solo toma los primeros 8 mods para llenar los slots.
+                optimalBuild = selectedModsArray.slice(0, 8); 
+            }
+            // -------------------------------------------------------------------
+
+            // Actualizar la Página 3 con los resultados
+            const targetName = selectedItem + (selectedWeaponType ? ` (${selectedWeaponType})` : '');
+            document.getElementById('build-result-target').textContent = `Build Óptima para: ${targetName}`;
+            
+            const modSlots = document.querySelectorAll('.mod-slot');
+            modSlots.forEach((slot, index) => {
+                slot.classList.remove('filled');
+                if (optimalBuild[index]) {
+                    slot.textContent = optimalBuild[index];
+                    slot.classList.add('filled');
+                } else {
+                    slot.textContent = 'MODS HERE';
+                }
+            });
+
+            showPage('page-3-build-result');
+        }
+
+
+        // Iniciar la aplicación al cargar la página
+        window.onload = loadData;
+    </script>
+
+</body>
+</html>
